@@ -32,13 +32,15 @@ const Pong = (function() {
 
         that.camera = buildCamera();
         that.ball = buildSphere();
+        that.light = buildLight();
+        that.plane = buildPlane();
 
         const scene = new THREE.Scene();
 
         scene.add(that.camera);
         scene.add(that.ball);
-        scene.add(buildLight());
-        scene.add(buildPlane());
+        scene.add(that.light);
+        scene.add(that.plane);
 
         that.paddle1 = buildPaddle(0x1B32C0);
         that.paddle2 = buildPaddle(0xFF4045);
@@ -65,6 +67,7 @@ const Pong = (function() {
         opponentPaddleMovement(that.paddle2);
         paddlePhysics(that.paddle1);
         paddlePhysics(that.paddle2);
+        cameraPhysics();
     }
 
     function playerScored() {
@@ -225,6 +228,21 @@ const Pong = (function() {
                 }
             }
         }
+    }
+
+    function cameraPhysics() {
+        that.light.position.x = that.ball.position.x * 2;
+        that.light.position.y = that.ball.position.y * 2;
+
+        // move to behind the player's paddle
+        that.camera.position.x = that.paddle1.position.x - 70;
+        that.camera.position.y += (that.paddle1.position.y - that.camera.position.y) * 0.05;
+        that.camera.position.z = that.paddle1.position.z + 180 + 0.04 * (-that.ball.position.x + that.paddle1.position.x);
+
+        // rotate to face towards the opponent
+        that.camera.rotation.x = -0.01 * (that.ball.position.y) * Math.PI / 180;
+        that.camera.rotation.y = -60 * Math.PI / 180;
+        that.camera.rotation.z = -90 * Math.PI / 180;
     }
 
     return {
