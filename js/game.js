@@ -10,11 +10,11 @@ const Pong = (function() {
 
     const paddleWidth = 10;
     const paddleHeight = 80;
-    const paddleDepth = 10;
+    const paddleDepth = 30;
     const paddleQuality = 1;
     const paddleSpeed = 10;
 
-    const ballSpeed = 5;
+    const ballSpeed = 6;
 
     let ballDirX = 1;
     let ballDirY = 1;
@@ -27,20 +27,29 @@ const Pong = (function() {
         that.player2ScoreId = player2ScoreId;
 
         const renderer = new THREE.WebGLRenderer();
+        renderer.shadowMap.enabled = true;
         renderer.setSize(sceneWidth, sceneHeight);
         that.renderer = renderer;
 
         that.camera = buildCamera();
         that.ball = buildSphere();
-        that.light = buildLight();
+        that.pointLight = buildPointLight();
+        that.spotLight = buildSpotLight();
         that.plane = buildPlane();
 
         const scene = new THREE.Scene();
 
         scene.add(that.camera);
         scene.add(that.ball);
-        scene.add(that.light);
+        scene.add(that.pointLight);
+        scene.add(that.spotLight);
         scene.add(that.plane);
+        scene.add(buildTable());
+        scene.add(buildGround());
+
+        for (let pillar of buildPillars()) {
+            scene.add(pillar);
+        }
 
         that.paddle1 = buildPaddle(0x1B32C0);
         that.paddle2 = buildPaddle(0xFF4045);
@@ -86,9 +95,7 @@ const Pong = (function() {
         const near = 0.1;
         const far = 10000;
 
-        const camera = new THREE.PerspectiveCamera(viewAngle, aspect, near, far);
-        camera.position.z = 200;
-        return camera;
+        return new THREE.PerspectiveCamera(viewAngle, aspect, near, far);
     }
 
     function buildSphere() {
@@ -100,10 +107,16 @@ const Pong = (function() {
             color: 0xD43001
         });
 
-        return new THREE.Mesh(new THREE.SphereGeometry(radius, segments, rings), sphereMaterial);
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(radius, segments, rings), sphereMaterial);
+
+        ball.position.z = radius;
+        ball.receiveShadow = true;
+        ball.castShadow = true;
+
+        return ball;
     }
 
-    function buildLight() {
+    function buildPointLight() {
         const pointLight = new THREE.PointLight(0xFFFFFF);
 
         pointLight.position.x = 0;
@@ -116,6 +129,25 @@ const Pong = (function() {
         return pointLight;
     }
 
+    function buildSpotLight() {
+        const spotLight = new THREE.SpotLight(0xF8D898);
+        spotLight.position.set(0, 0, 460);
+        spotLight.intensity = 1.5;
+        spotLight.castShadow = true;
+        return spotLight;
+    }
+
+    function buildGround() {
+        const groundMaterial = new THREE.MeshLambertMaterial({
+            color: 0x8054AC
+        });
+        const cubeGeometry = new THREE.CubeGeometry(1000, 1000, 3, 1, 1, 1);
+        const ground = new THREE.Mesh(cubeGeometry, groundMaterial);
+        ground.position.z = -132;
+        ground.receiveShadow = true;
+        return ground;
+    }
+
     function buildPlane() {
 
         const planeWidth = fieldWidth;
@@ -126,8 +158,48 @@ const Pong = (function() {
             color: 0x4BD121
         });
         const planeGeometry = new THREE.PlaneGeometry(planeWidth, planeHeight, planeQuality, planeQuality);
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.receiveShadow = true;
+        return plane;
+    }
 
-        return new THREE.Mesh(planeGeometry, planeMaterial);
+    function buildTable() {
+        const tableMaterial = new THREE.MeshLambertMaterial({
+            color: 0x111111
+        });
+        const cubeGeometry = new THREE.CubeGeometry(fieldWidth * 1.05, fieldHeight * 1.03, 100, 10, 10, 1);
+        const table = new THREE.Mesh(cubeGeometry, tableMaterial);
+        table.position.z = -51;
+        table.receiveShadow = true;
+        return table;
+    }
+
+    function buildPillars() {
+
+        const pillarMaterial = new THREE.MeshLambertMaterial({
+            color: 0x534d0d
+        });
+        const count = 10;
+
+        function pillarsForY(y) {
+            const pillars = [];
+
+            for (let i = 0; i < count; i++) {
+                const cubeGeometry = new THREE.CubeGeometry(30, 30, 500, 1, 1, 1);
+                const pillar = new THREE.Mesh(cubeGeometry, pillarMaterial);
+
+                const spacing = (fieldWidth / count) * i;
+                pillar.position.x = spacing - (fieldWidth / 2);
+                pillar.position.y = y;
+                pillar.position.z = 0;
+                pillar.castShadow = true;
+                pillar.receiveShadow = true;
+                pillars.push(pillar);
+            }
+            return pillars;
+        }
+
+        return [...pillarsForY(250), ...pillarsForY(-250)];
     }
 
     function buildPaddle(paddleColor) {
@@ -138,6 +210,8 @@ const Pong = (function() {
         const paddleGeometry = new THREE.CubeGeometry(paddleWidth, paddleHeight, paddleDepth, paddleQuality, paddleQuality, paddleQuality);
         const paddle = new THREE.Mesh(paddleGeometry, paddleMaterial);
         paddle.position.z = paddleDepth;
+        paddle.receiveShadow = true;
+        paddle.castShadow = true;
         return paddle;
     }
 
@@ -184,7 +258,7 @@ const Pong = (function() {
     }
 
     function opponentPaddleMovement(paddle) {
-        const paddle2DirY = (ball.position.y - paddle.position.y) * 0.1;
+        const paddle2DirY = (ball.position.y - paddle.position.y) * 0.13;
 
         if (Math.abs(paddle2DirY) <= paddleSpeed) {
             paddle.position.y += paddle2DirY;
@@ -231,11 +305,11 @@ const Pong = (function() {
     }
 
     function cameraPhysics() {
-        that.light.position.x = that.ball.position.x * 2;
-        that.light.position.y = that.ball.position.y * 2;
+        that.pointLight.position.x = that.ball.position.x * 2;
+        that.pointLight.position.y = that.ball.position.y * 2;
 
         // move to behind the player's paddle
-        that.camera.position.x = that.paddle1.position.x - 70;
+        that.camera.position.x = that.paddle1.position.x - 80;
         that.camera.position.y += (that.paddle1.position.y - that.camera.position.y) * 0.05;
         that.camera.position.z = that.paddle1.position.z + 180 + 0.04 * (-that.ball.position.x + that.paddle1.position.x);
 
