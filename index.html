@@ -12,7 +12,6 @@
             width: 640px;
             height: 360px;
             margin: auto;
-            align: center;
         }
 
         #scoreboard {
@@ -27,22 +26,16 @@
             margin: 0;
             color: white;
         }
-
-        #title {
-            background-color: white;
-            color: black;
-        }
     </style>
 </head>
 <body>
-<div id='gameCanvas'></div>
-<script src='js/three.min.js'></script>
-<script src='js/keyboard.js'></script>
-<script src='js/game.js'></script>
-<div id='scoreboard'>
-    <h1 id='scores'>0-0</h1>
-    <h1 id='title'>Pong</h1>
-    <h2 id='winnerBoard'></h2>
+<div id="gameCanvas"></div>
+<script src="js/three.min.js"></script>
+<script src="js/keyboard.js"></script>
+<script src="js/game.js"></script>
+<div id="scoreboard">
+    <h1 id="scores"><span id="player1Score">0</span>-<span id="player2Score">0</span></h1>
+    <h2 id="winnerBoard"></h2>
     <h3>A - left<br>D - right</h3>
 </div>
 <script>
